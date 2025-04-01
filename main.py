@@ -1,12 +1,16 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget
 from PyQt5.QtGui import QIcon
+import pandas as pd
+import numpy as np
+
+roc_data = pd.read_csv('roc_train_data.csv')
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Accelerometer Classification")
-        self.setGeometry(700, 300, 800, 600)  # Initial position (x, y, width, height)
+        self.setGeometry(700, 300, 800, 600)
         self.setWindowIcon(QIcon("coatofarms.png"))
         self.center_window()
 
