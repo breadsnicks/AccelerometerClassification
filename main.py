@@ -56,13 +56,11 @@ class MainWindow(QDialog):
         print("I have processed the data")
         segments = self.segment_data(processed_data)
         print("I have segmented the data")
-        features = self.extract_features(segments)
-        print("I have extracted the features")
-        print(features.ndim)
-        features = StandardScaler().fit_transform(features)
-        print(features.shape)
+        if len(segments.shape) == 3:
+            n_segments = segments.shape[0]
+            flattened_segments = segments.reshape(n_segments, -1)
 
-        predictions = self.model.predict(features)
+        predictions = self.model.predict(flattened_segments)
         print("I have predicted the data")
         print(predictions)
 
