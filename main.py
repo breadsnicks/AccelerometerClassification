@@ -3,14 +3,13 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog, QWidget
 from PyQt5.uic import loadUi
 
+from joblib import load
+
 import pandas as pd
 import numpy as np
 
-# Read the ROC data file
-roc_data = pd.read_csv('roc_train_data.csv')
-fpr = roc_data["False Positive Rate (FPR)"].values
-tpr = roc_data["True Positive Rate (TPR)"].values
-threshold = roc_data["Thresholds"].values
+# read imported model via joblib
+model = load('accelerometer_model.joblib')
 
 class MainWindow(QDialog):
     def __init__(self):
@@ -25,18 +24,18 @@ class MainWindow(QDialog):
 
     def processCSV(self, file_path):
         data = pd.read_csv(file_path)
-        time = data.iloc[:,0].values
         x = data.iloc[:,1].values
         y = data.iloc[:,2].values
         z = data.iloc[:,3].values
-        absolute_acceleration = data.iloc[:,4].values
+
+        accel_data = np.column_stack((x, y, z))
 
 app = QApplication(sys.argv)
 main = MainWindow()
 widget = QtWidgets.QStackedWidget()
 widget.addWidget(main)
-widget.setFixedWidth(400)
-widget.setFixedHeight(300)
+widget.setFixedWidth(800)
+widget.setFixedHeight(600)
 widget.show()
 sys.exit(app.exec_())
 
