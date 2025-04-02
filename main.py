@@ -1,22 +1,31 @@
 import sys
+
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog, QWidget
 from PyQt5.uic import loadUi
 from scipy.stats import skew
 
-from joblib import load
+import pickle
+
+from sklearn.preprocessing import StandardScaler
 
 import pandas as pd
 import numpy as np
-
-# read imported model via joblib
-model = load('accelerometer_model.joblib')
 
 class MainWindow(QDialog):
     def __init__(self):
         super().__init__()
         loadUi("gui.ui", self)
         self.browse.clicked.connect(self.browseFiles)
+        try:
+            with open('accelerometer_model.pkl', 'rb') as f:
+                self.model = pickle.load(f)
+            print("Pipeline loaded successfully. Steps:", self.model.named_steps.keys())
+            if hasattr(self.model, 'n_features_in_'):
+                print("Expected input features:", self.model.n_features_in_)
+        except Exception as e:
+            print(f"Pipeline loading failed: {e}")
+            self.model = None
 
     def browseFiles(self):
         file_path, _ =QFileDialog.getOpenFileName(self, 'Open File', '', '(*.csv)')
@@ -39,27 +48,6 @@ class MainWindow(QDialog):
         window_length = window_size * sampling_rate
         return np.array([df.iloc[i:i + window_length].values for i in range(0, len(df) - window_length + 1, window_length)])
 
-    def extract_features(self, segments):
-        feature_list = []
-        for segment in segments:
-            df = pd.DataFrame(segment, columns=["Time", "Acc_X", "Acc_Y", "Acc_Z", "Absolute_Acc"])
-            features = []
-            for col in ['Acc_X', 'Acc_Y', 'Acc_Z', 'Absolute_Acc']:
-                signal = df[col]
-                features.extend([
-                    np.mean(signal),
-                    np.std(signal),
-                    np.min(signal),
-                    np.max(signal),
-                    np.median(signal),
-                    np.max(signal) - np.min(signal),  # Range
-                    np.var(signal),
-                    skew(signal),
-                    np.sum(signal ** 2),  # Energy
-                    np.mean(np.abs(signal))  # Absolute mean
-                ])
-            feature_list.append(features)
-        return np.array(feature_list)
 
     def processCSV(self, file_path):
         data = pd.read_csv(file_path)
@@ -70,9 +58,26 @@ class MainWindow(QDialog):
         print("I have segmented the data")
         features = self.extract_features(segments)
         print("I have extracted the features")
+        print(features.ndim)
+        features = StandardScaler().fit_transform(features)
+        print(features.shape)
 
+        predictions = self.model.predict(features)
+        print("I have predicted the data")
+        print(predictions)
 
+        activity_labels = ['walking', 'jumping']
+        human_readable = [activity_labels[pred] for pred in predictions]
 
+        # Display results
+        print("Predicted activities:", human_readable)
+        if hasattr(self, 'resultLabel'):  # If you have a QLabel for results
+            self.resultLabel.setText(f"Activities: {', '.join(human_readable)}")
+
+        walking_count = list(predictions).count(0)
+        jumping_count = list(predictions).count(1)
+        dominant_activity = 'walking' if walking_count > jumping_count else 'jumping'
+        print("I think this is", dominant_activity, "data!")
 
 app = QApplication(sys.argv)
 main = MainWindow()
