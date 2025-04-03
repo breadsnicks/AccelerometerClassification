@@ -6,26 +6,25 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>539</width>
-    <height>364</height>
+    <width>1150</width>
+    <height>723</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QPushButton" name="browse">
-   <property name="geometry">
-    <rect>
-     <x>180</x>
-     <y>140</y>
-     <width>151</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>browse</string>
-   </property>
-  </widget>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QVBoxLayout" name="plotLayout"/>
+   </item>
+   <item>
+    <widget class="QPushButton" name="browse">
+     <property name="text">
+      <string>browse</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections/>

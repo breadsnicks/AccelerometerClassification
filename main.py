@@ -3,35 +3,84 @@ import sys
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog, QWidget
 from PyQt5.uic import loadUi
-from scipy.stats import skew
 
 import pickle
 
+from pandas.io.xml import preprocess_data
 from sklearn.preprocessing import StandardScaler
 
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 class MainWindow(QDialog):
     def __init__(self):
         super().__init__()
         loadUi("gui.ui", self)
+
+        # Window size control
+        self.setFixedSize(800, 600)
         self.browse.clicked.connect(self.browseFiles)
+
         try:
             with open('accelerometer_model.pkl', 'rb') as f:
                 self.model = pickle.load(f)
             print("Pipeline loaded successfully. Steps:", self.model.named_steps.keys())
-            if hasattr(self.model, 'n_features_in_'):
-                print("Expected input features:", self.model.n_features_in_)
         except Exception as e:
             print(f"Pipeline loading failed: {e}")
             self.model = None
+
+        self.canvas = self.Canvas(self)
+        self.plotLayout.addWidget(self.canvas)
+
+    class Canvas(FigureCanvas):
+        def __init__(self, parent=None):
+            self.fig, self.ax = plt.subplots(figsize=(5, 4), dpi=200)
+            super().__init__(self.fig)
+            self.setParent(parent)
+            # Adjust font sizes
+            self.ax.set_title("Accelerometer Data", fontsize=8)  # Title font size
+            self.ax.set_xlabel("Time", fontsize=5)  # X-axis label font size
+            self.ax.set_ylabel("Acceleration", fontsize=5)  # Y-axis label font size
+
+            # Adjust tick font sizes
+            self.ax.tick_params(axis='both', which='major', labelsize=5)
+            self.ax.grid(True)
+            self.ax.legend()
+
+        def plot_data(self, df, title):
+            self.ax.clear()
+            time = range(len(df))
+            x = df[:, 1]
+            y = df[:, 2]
+            z = df[:, 3]
+
+            self.ax.plot(time, x, label="x")
+            self.ax.plot(time, y, label="y")
+            self.ax.plot(time, z, label="z")
+            self.ax.set_title(f"{title} Accelerometer Data", fontsize=8)  # Title font size
+            self.ax.set_xlabel("Time", fontsize=5)  # X-axis label font size
+            self.ax.set_ylabel("Acceleration", fontsize=5)  # Y-axis label font size
+            self.ax.legend()
+            self.draw()
 
     def browseFiles(self):
         file_path, _ =QFileDialog.getOpenFileName(self, 'Open File', '', '(*.csv)')
         if file_path:
             print(file_path)
-            self.processCSV(file_path)
+            title = self.processCSV(file_path)
+            self.plot_csv(file_path, title)
+
+    def plot_csv(self, file_path, title):
+        try:
+            df = pd.read_csv(file_path)
+            df = self.preprocess_data(df)
+            self.canvas.plot_data(df.iloc[:len(df)].values, title=title)
+        except Exception as e:
+            if hasattr(self, 'statusLabel'):
+                self.statusLabel.setText(f"Error: {str(e)}")
+            print(f"Error loading CSV: {e}")
 
     # must apply same preprocessing and segmentation to the csv file
     def preprocess_data(self, df):
@@ -74,8 +123,8 @@ class MainWindow(QDialog):
 
         walking_count = list(predictions).count(0)
         jumping_count = list(predictions).count(1)
-        dominant_activity = 'walking' if walking_count > jumping_count else 'jumping'
-        print("I think this is", dominant_activity, "data!")
+        dominant_activity = 'Walking' if walking_count > jumping_count else 'Jumping'
+        return dominant_activity
 
 app = QApplication(sys.argv)
 main = MainWindow()
